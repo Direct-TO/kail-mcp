@@ -1,0 +1,34 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+env/
+
+# Runtime data
+data/
+reports/
+*.db
+*.sqlite
+*.sqlite3
+*.log
+
+# Local config/secrets
+.env
+.env.*
+!.env.example
+
+# Docker exports/build artifacts
+*.tar
+*.tar.gz
+*.tgz
+
+# Editor/OS files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db

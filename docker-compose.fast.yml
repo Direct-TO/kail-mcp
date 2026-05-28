@@ -1,0 +1,17 @@
+# Fast rebuild overlay.
+#
+# Usage after one full build and tagging rami-kali-tools:latest, or after
+# importing rami-kali-tools:latest:
+#   docker compose -f docker-compose.yml -f docker-compose.fast.yml up -d --build --force-recreate
+#
+# Override RAMI_KALI_BASE_IMAGE if you imported the base under another tag.
+
+services:
+  mcp-server:
+    build:
+      context: .
+      dockerfile: Dockerfile.fast
+      args:
+        RAMI_KALI_BASE_IMAGE: ${RAMI_KALI_BASE_IMAGE:-rami-kali-tools:latest}
+      cache_from:
+        - ${RAMI_KALI_BASE_IMAGE:-rami-kali-tools:latest}

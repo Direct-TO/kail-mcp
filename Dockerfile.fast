@@ -1,0 +1,41 @@
+# ============================================================================
+# Fast application-layer rebuild
+# ============================================================================
+#
+# This Dockerfile is for day-to-day MCP code/config changes after a full tool
+# baseline image already exists locally, or after it has been imported with
+# docker load on another machine.
+#
+# It avoids reinstalling Kali tools by reusing the previous full image as the
+# base and only replacing the application layer.
+# ============================================================================
+
+ARG RAMI_KALI_BASE_IMAGE=rami-kali-tools:latest
+FROM ${RAMI_KALI_BASE_IMAGE} AS app
+
+WORKDIR /opt/rami-kali
+
+ENV PIP_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple \
+    PIP_TRUSTED_HOST=pypi.tuna.tsinghua.edu.cn
+
+COPY requirements.txt .
+RUN pip3 install --no-cache-dir --break-system-packages -r requirements.txt
+
+COPY config.yaml .
+COPY mcp_server.py .
+COPY knowledge/ knowledge/
+COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh \
+    && mkdir -p /opt/rami-kali/reports /opt/rami-kali/data
+
+ENV MCP_CONFIG_PATH=/opt/rami-kali/config.yaml \
+    MCP_LOG_LEVEL=INFO \
+    MCP_DATABASE=/opt/rami-kali/data/scan_results.db \
+    MCP_AUDIT_LOG=/opt/rami-kali/data/audit.log \
+    MCP_REPORT_DIR=/opt/rami-kali/reports
+
+HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
+    CMD python3 -c "import sys; sys.exit(0)"
+
+ENTRYPOINT ["docker-entrypoint.sh"]
+CMD []
