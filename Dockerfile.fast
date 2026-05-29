@@ -10,10 +10,10 @@
 # base and only replacing the application layer.
 # ============================================================================
 
-ARG RAMI_KALI_BASE_IMAGE=rami-kali-tools:latest
-FROM ${RAMI_KALI_BASE_IMAGE} AS app
+ARG KAIL_MCP_BASE_IMAGE=kail-mcp-tools:latest
+FROM ${KAIL_MCP_BASE_IMAGE} AS app
 
-WORKDIR /opt/rami-kali
+WORKDIR /opt/kail-mcp
 
 ENV PIP_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple \
     PIP_TRUSTED_HOST=pypi.tuna.tsinghua.edu.cn
@@ -26,13 +26,13 @@ COPY mcp_server.py .
 COPY knowledge/ knowledge/
 COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh \
-    && mkdir -p /opt/rami-kali/reports /opt/rami-kali/data
+    && mkdir -p /opt/kail-mcp/reports /opt/kail-mcp/data
 
-ENV MCP_CONFIG_PATH=/opt/rami-kali/config.yaml \
+ENV MCP_CONFIG_PATH=/opt/kail-mcp/config.yaml \
     MCP_LOG_LEVEL=INFO \
-    MCP_DATABASE=/opt/rami-kali/data/scan_results.db \
-    MCP_AUDIT_LOG=/opt/rami-kali/data/audit.log \
-    MCP_REPORT_DIR=/opt/rami-kali/reports
+    MCP_DATABASE=/opt/kail-mcp/data/scan_results.db \
+    MCP_AUDIT_LOG=/opt/kail-mcp/data/audit.log \
+    MCP_REPORT_DIR=/opt/kail-mcp/reports
 
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
     CMD python3 -c "import sys; sys.exit(0)"

@@ -5,13 +5,13 @@
 # the Python MCP server and tactical knowledge base.
 #
 # Usage:
-#   docker build -t rami-kali .
+#   docker build -t kail-mcp .
 #   docker compose up
 # ============================================================================
 
 FROM kalilinux/kali-rolling:latest AS tools-base
 
-LABEL maintainer="rami-kali"
+LABEL maintainer="kail-mcp"
 LABEL description="MCP server with Kali Linux penetration testing tools"
 LABEL version="2.1.0"
 
@@ -206,7 +206,7 @@ RUN echo 'export HISTFILE=/root/.bash_history' >> /root/.bashrc \
 #   proxychains -f /etc/proxychains4-tor.conf <tool>     → Tor dentro del contenedor (anónimo, sin análisis Burp)
 #
 #   Para análisis Burp + anonimato Tor (mejor opción):
-#     1. Activa Tor desde RamiBot (expone SOCKS en 127.0.0.1:9050 vía network_mode:host)
+#     1. Activa Tor desde the host UI (expone SOCKS en 127.0.0.1:9050 vía network_mode:host)
 #     2. En Burp Suite (Windows): Settings → Network → Connections → SOCKS proxy → 127.0.0.1:9050
 #     3. Usa proxychains normalmente → tool → Burp → Tor → internet
 RUN sed -i 's/^socks4\s.*/# &/' /etc/proxychains4.conf \
@@ -246,9 +246,9 @@ RUN if [ -f /usr/share/wordlists/rockyou.txt.gz ]; then \
     fi
 
 # ── Pre-configure Tor transparent proxy ────────────────────────────────────
-# Directives required by RamiBot's tor_start() transparent proxy feature.
+# Directives required by the host UI's tor_start() transparent proxy feature.
 # _ensure_torrc() in terminal.py will detect these are already present (no-op).
-RUN printf '\n# RamiBot transparent proxy\nTransPort 9040\nDNSPort 5353\nVirtualAddrNetworkIPv4 10.192.0.0/10\nAutomapHostsOnResolve 1\n' >> /etc/tor/torrc
+RUN printf '\n# the host UI transparent proxy\nTransPort 9040\nDNSPort 5353\nVirtualAddrNetworkIPv4 10.192.0.0/10\nAutomapHostsOnResolve 1\n' >> /etc/tor/torrc
 
 # ── 5. Initialize Metasploit database ──────────────────────────────────────
 RUN service postgresql start \
@@ -260,7 +260,7 @@ RUN service postgresql start \
 FROM tools-base AS app
 
 # ── 7. Application directory ───────────────────────────────────────────────
-WORKDIR /opt/rami-kali
+WORKDIR /opt/kail-mcp
 
 # ── 8. Python dependencies ─────────────────────────────────────────────────
 COPY requirements.txt .
@@ -274,15 +274,15 @@ COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 # ── 10. Runtime directories for volumes ────────────────────────────────────
-RUN mkdir -p /opt/rami-kali/reports /opt/rami-kali/data
+RUN mkdir -p /opt/kail-mcp/reports /opt/kail-mcp/data
 
 # ── 11. Environment variable defaults ──────────────────────────────────────
 #    All can be overridden in docker-compose.yml or with `docker run -e`
-ENV MCP_CONFIG_PATH=/opt/rami-kali/config.yaml \
+ENV MCP_CONFIG_PATH=/opt/kail-mcp/config.yaml \
     MCP_LOG_LEVEL=INFO \
-    MCP_DATABASE=/opt/rami-kali/data/scan_results.db \
-    MCP_AUDIT_LOG=/opt/rami-kali/data/audit.log \
-    MCP_REPORT_DIR=/opt/rami-kali/reports
+    MCP_DATABASE=/opt/kail-mcp/data/scan_results.db \
+    MCP_AUDIT_LOG=/opt/kail-mcp/data/audit.log \
+    MCP_REPORT_DIR=/opt/kail-mcp/reports
 
 # ── 12. Healthcheck ────────────────────────────────────────────────────────
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 \

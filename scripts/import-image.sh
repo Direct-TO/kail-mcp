@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
 set -eu
 
-ARCHIVE="${1:-rami-kali-image.tar.gz}"
+ARCHIVE="${1:-kail-mcp-image.tar.gz}"
 
 gzip -dc "$ARCHIVE" | docker load
 

@@ -16,8 +16,8 @@ services:
       context: .
       dockerfile: Dockerfile
       target: app
-    container_name: rami-kali
-    image: rami-kali:latest
+    container_name: kail-mcp
+    image: kail-mcp:latest
 
     # ── MCP uses stdin/stdout JSON-RPC ────────────────────────────────────
     stdin_open: true
@@ -26,18 +26,18 @@ services:
     # ── Environment overrides ─────────────────────────────────────────────
     environment:
       - MCP_LOG_LEVEL=${MCP_LOG_LEVEL:-INFO}
-      - MCP_DATABASE=/opt/rami-kali/data/scan_results.db
-      - MCP_AUDIT_LOG=/opt/rami-kali/data/audit.log
-      - MCP_REPORT_DIR=/opt/rami-kali/reports
+      - MCP_DATABASE=/opt/kail-mcp/data/scan_results.db
+      - MCP_AUDIT_LOG=/opt/kail-mcp/data/audit.log
+      - MCP_REPORT_DIR=/opt/kail-mcp/reports
 
     # ── Persistent volumes ────────────────────────────────────────────────
     #  data/   → SQLite database + audit log (survives container restarts)
     #  reports/→ generated markdown reports
     #  config  → user can override config without rebuilding
     volumes:
-      - mcp-data:/opt/rami-kali/data
-      - mcp-reports:/opt/rami-kali/reports
-      - ./config.yaml:/opt/rami-kali/config.yaml:ro
+      - mcp-data:/opt/kail-mcp/data
+      - mcp-reports:/opt/kail-mcp/reports
+      - ./config.yaml:/opt/kail-mcp/config.yaml:ro
 
     # ── Network: host mode allows scanning the local network ──────────────
     #    Change to bridge + port mapping if you only scan remote targets.
@@ -81,7 +81,7 @@ services:
   #
   # msf-db:
   #   image: postgres:15-alpine
-  #   container_name: rami-kali-msf-db
+  #   container_name: kail-mcp-msf-db
   #   environment:
   #     POSTGRES_USER: msf
   #     POSTGRES_PASSWORD: msf_password

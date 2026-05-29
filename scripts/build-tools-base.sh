@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
 set -eu
 
-IMAGE="${1:-rami-kali-tools:latest}"
+IMAGE="${1:-kail-mcp-tools:latest}"
 
 docker build --target tools-base -t "$IMAGE" .
 

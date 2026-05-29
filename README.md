@@ -1,6 +1,6 @@
-# Rami-Kali MCP Server
+# kail-mcp Server
 
-Rami-Kali MCP (Model Context Protocol) server that wraps Kali Linux penetration testing tools for authorized security assessments. Designed to be driven by a local LLM via LM Studio.
+kail-mcp (Model Context Protocol) server that wraps Kali Linux penetration testing tools for authorized security assessments. Designed to be driven by a local LLM via LM Studio.
 
 > **For AUTHORIZED penetration testing, CTF competitions, and security research ONLY.**
 
@@ -9,8 +9,8 @@ Rami-Kali MCP (Model Context Protocol) server that wraps Kali Linux penetration 
 ## Quick Start (Docker)
 
 ```bash
-git clone <repo-url> rami-kali
-cd rami-kali
+git clone <repo-url> kail-mcp
+cd kail-mcp
 docker compose up
 ```
 
@@ -85,14 +85,14 @@ For another computer, export/import the image instead of downloading all tools a
 
 ```bash
 # Source machine
-sh scripts/export-image.sh rami-kali-images.tar.gz
+sh scripts/export-image.sh kail-mcp-images.tar.gz
 
 # Target machine
-sh scripts/import-image.sh rami-kali-images.tar.gz
+sh scripts/import-image.sh kail-mcp-images.tar.gz
 docker compose up -d
 ```
 
-If you built only `rami-kali:latest` and want to use it as the fast-rebuild baseline:
+If you built only `kail-mcp:latest` and want to use it as the fast-rebuild baseline:
 
 ```bash
 sh scripts/promote-tools-base.sh
@@ -105,10 +105,10 @@ Override any setting without modifying `config.yaml`:
 | Variable | Default | Description |
 |---|---|---|
 | `MCP_LOG_LEVEL` | `INFO` | Logging level (`DEBUG`, `INFO`, `WARNING`, `ERROR`) |
-| `MCP_DATABASE` | `/opt/rami-kali/data/scan_results.db` | SQLite database path |
-| `MCP_AUDIT_LOG` | `/opt/rami-kali/data/audit.log` | Audit trail file path |
-| `MCP_REPORT_DIR` | `/opt/rami-kali/reports` | Directory for generated reports |
-| `MCP_CONFIG_PATH` | `/opt/rami-kali/config.yaml` | Path to YAML config file |
+| `MCP_DATABASE` | `/opt/kail-mcp/data/scan_results.db` | SQLite database path |
+| `MCP_AUDIT_LOG` | `/opt/kail-mcp/data/audit.log` | Audit trail file path |
+| `MCP_REPORT_DIR` | `/opt/kail-mcp/reports` | Directory for generated reports |
+| `MCP_CONFIG_PATH` | `/opt/kail-mcp/config.yaml` | Path to YAML config file |
 
 Example with overrides:
 
@@ -128,17 +128,17 @@ Two Docker volumes keep data across container restarts:
 
 | Volume | Container Path | Contents |
 |---|---|---|
-| `mcp-data` | `/opt/rami-kali/data/` | SQLite scan database, audit log |
-| `mcp-reports` | `/opt/rami-kali/reports/` | Generated markdown reports |
+| `mcp-data` | `/opt/kail-mcp/data/` | SQLite scan database, audit log |
+| `mcp-reports` | `/opt/kail-mcp/reports/` | Generated markdown reports |
 
 To back up your data:
 
 ```bash
 # Copy database out of the container
-docker compose cp mcp-server:/opt/rami-kali/data/scan_results.db ./backup.db
+docker compose cp mcp-server:/opt/kail-mcp/data/scan_results.db ./backup.db
 
 # Copy reports
-docker compose cp mcp-server:/opt/rami-kali/reports/ ./reports-backup/
+docker compose cp mcp-server:/opt/kail-mcp/reports/ ./reports-backup/
 ```
 
 To wipe all data and start fresh:
@@ -227,7 +227,7 @@ The following tools from the registry **cannot run** in a Docker container and a
 |---|---|
 | `mimikatz` | Windows-only binary |
 | `cobaltstrike` | Commercial license required |
-| `burpsuite` | Runs on the Windows host separately; its MCP server is added as an independent server in RamiBot — not part of rami-kali |
+| `burpsuite` | Runs on the Windows host separately; its MCP server is added as an independent server in the host UI — not part of kail-mcp |
 | `powersploit` | PowerShell modules, not a Linux binary |
 | `empire` | Deprecated / complex install |
 | `shellter` | Windows PE injector (Wine-dependent) |
@@ -243,11 +243,11 @@ The container runs **zsh** as the default shell with:
 - **`zsh-syntax-highlighting`**: commands turn green when valid, red when invalid — real-time feedback before you press Enter
 - **`zsh-autosuggestions`**: suggests commands from history; press Tab or → to accept
 
-When RamiBot's Docker Terminal opens a session it detects the shell in order: **zsh → bash → sh**.
+When the host UI's Docker Terminal opens a session it detects the shell in order: **zsh → bash → sh**.
 
 ```bash
 # Open an interactive zsh session
-docker exec -it rami-kali zsh
+docker exec -it kail-mcp zsh
 ```
 
 ### Proxy Routing (proxychains4)
@@ -323,7 +323,7 @@ See `knowledge/README.md` for the full structure and integration guide.
 ## Project Structure
 
 ```
-rami-kali/
+kail-mcp/
 ├── Dockerfile              ← Kali-based container image (60+ tools)
 ├── docker-compose.yml      ← One-command startup + optional PostgreSQL
 ├── docker-entrypoint.sh    ← Startup checks & tool verification

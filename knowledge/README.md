@@ -1,4 +1,4 @@
-# Rami-Kali — Tactical Knowledge Base
+# kail-mcp — Tactical Knowledge Base
 
 ## Purpose
 Internal reasoning memory for a 7B local LLM operating MCP security tools.

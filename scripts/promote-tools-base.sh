@@ -1,8 +1,8 @@
 #!/usr/bin/env sh
 set -eu
 
-SOURCE="${1:-rami-kali:latest}"
-TARGET="${2:-rami-kali-tools:latest}"
+SOURCE="${1:-kail-mcp:latest}"
+TARGET="${2:-kail-mcp-tools:latest}"
 
 docker image inspect "$SOURCE" >/dev/null
 docker tag "$SOURCE" "$TARGET"

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-MCP Server - Rami-kali AI Assistant v2.0
+MCP Server - kail-mcp AI Assistant v2.0
 Integrates Kali Linux penetration testing tools with LM Studio via MCP protocol.
 
 DISCLAIMER: This tool is designed for AUTHORIZED penetration testing and security
@@ -2535,7 +2535,7 @@ class ToolExecutor:
         url = f"{base_url}?{urllib.parse.urlencode(params)}"
 
         def _fetch() -> str:
-            req = urllib.request.Request(url, headers={"User-Agent": "RamiBot-CVE-Lookup/1.0"})
+            req = urllib.request.Request(url, headers={"User-Agent": "the host UI-CVE-Lookup/1.0"})
             with urllib.request.urlopen(req, timeout=15) as resp:
                 return resp.read().decode("utf-8")
 
@@ -3787,7 +3787,7 @@ class MCPServer:
     """
 
     PROTOCOL_VERSION = "2024-11-05"
-    SERVER_NAME = "rami-kali"
+    SERVER_NAME = "kail-mcp"
     SERVER_VERSION = "3.3"
 
     def __init__(self) -> None:

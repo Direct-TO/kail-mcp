@@ -1,13 +1,13 @@
 #!/usr/bin/env sh
 set -eu
 
-OUT="${1:-rami-kali-images.tar.gz}"
+OUT="${1:-kail-mcp-images.tar.gz}"
 if [ "$#" -gt 0 ]; then
     shift
 fi
 
 if [ "$#" -eq 0 ]; then
-    set -- rami-kali:latest rami-kali-tools:latest
+    set -- kail-mcp:latest kail-mcp-tools:latest
 fi
 
 for image in "$@"; do
