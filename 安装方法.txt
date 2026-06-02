@@ -1,0 +1,7 @@
+写入/home/zk/.hermes/config.yaml：
+mcp_servers:
+  kail-mcp:
+    command: "docker"
+    args: ["exec", "-i", "kail-mcp", "python3", "/opt/kail-mcp/mcp_server.py"]
+    timeout: 300
+    connect_timeout: 30
