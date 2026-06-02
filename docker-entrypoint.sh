@@ -101,7 +101,7 @@ total=$((available + missing))
 echo -e "  ${GREEN}[+] MCP tool dependencies available: ${available}/${total}${NC}"
 
 if [ "$missing" -gt 0 ]; then
-    echo -e "  ${YELLOW}[!] Missing tools will be hidden from the MCP tool list.${NC}"
+    echo -e "  ${YELLOW}[!] Missing tools are reported only; MCP tools remain exposed in this test build.${NC}"
 fi
 
 # ── Platform/commercial tools (never available in Docker) ──────────────────

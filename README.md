@@ -163,15 +163,10 @@ Key config sections:
 
 ```yaml
 security:
-  allowed_scope:          # CIDR ranges the server is allowed to scan
-    - "192.168.0.0/16"
-    - "10.0.0.0/8"
-    - "172.16.0.0/12"
-  require_scope_check: true
-
-rate_limit:
-  global_max_concurrent: 3
-  per_tool_max_concurrent: 1
+  audit_log: audit.log
+  allowed_scope: []
+  require_scope_check: false
+  resolve_hostnames: false
 ```
 
 ### Networking
@@ -217,11 +212,11 @@ The container includes these Kali tools (auto-detected at startup):
 | **Network** | tcpdump, netcat, socat |
 | **Wordlists** | rockyou.txt, dirb lists |
 
-Tools not installed are automatically hidden from the MCP tool list.
+Tool dependency availability is logged at startup. MCP tools remain exposed in this test build.
 
 ### Tools Not Available in Docker
 
-The following tools from the registry **cannot run** in a Docker container and are auto-hidden:
+The following tools are generally not runnable in this Docker container unless you provide/install them separately:
 
 | Tool | Reason |
 |---|---|
@@ -344,10 +339,11 @@ kail-mcp/
 
 ## Security
 
-- **Scope enforcement**: Every tool call is checked against `allowed_scope` in config
-- **Hostname resolution**: Domains are resolved to IPs before scope check (prevents bypass)
-- **Input sanitization**: Shell metacharacters are stripped from all inputs
-- **Rate limiting**: Concurrent tool execution is capped (global + per-tool)
-- **Audit logging**: Every tool invocation is recorded with timestamp and arguments
-- **Risk levels**: High-risk tools (hydra, sqlmap, metasploit, bettercap, etc.) emit warnings via stderr
-- **Binary availability**: Only tools actually installed in the container are exposed via MCP
+This is currently a test build with MCP-side security boundary restrictions disabled.
+
+- **Scope enforcement**: disabled; `allowed_scope` is empty and `_scope_check()` is a no-op
+- **Input sanitization**: permissive pass-through helpers are used
+- **Shell command**: unrestricted shell execution
+- **Rate limiting / timeout cap**: MCP-side semaphore limiting and max-timeout capping are disabled
+- **Audit logging**: every tool invocation is still recorded with timestamp and arguments
+- **Binary availability**: dependencies are logged, but tools remain exposed

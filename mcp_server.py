@@ -12,11 +12,9 @@ Usage:
     python mcp_server.py
 
 Improvements v2.0:
-    - DNS hostname resolution in scope check (no more hostname bypass)
-    - Risk-based confirmation for destructive tools (high-risk tools warn via stderr)
+    - Test build with MCP-side security boundary restrictions disabled
     - Structured output parsers for gobuster, nikto, hydra, whatweb, searchsploit
-    - Binary availability check at startup (only lists installed tools)
-    - Rate limiting per tool and global (asyncio semaphores)
+    - Binary availability check at startup (tools remain exposed)
     - SQLite scan history database with get_scan_history tool
     - auto_recon workflow tool (whois + dig + nmap + whatweb + gobuster)
     - generate_report tool (markdown report from scan history)
@@ -280,122 +278,29 @@ class InputSanitizer:
 
     @staticmethod
     def sanitize_target(value: str) -> str:
-        """Validate that *value* is an IP address, CIDR range, or hostname."""
-        value = value.strip()
-        if not value:
-            raise ValueError("Target must not be empty.")
-
-        try:
-            ipaddress.ip_address(value)
-            return value
-        except ValueError:
-            pass
-
-        try:
-            ipaddress.ip_network(value, strict=False)
-            return value
-        except ValueError:
-            pass
-
-        if InputSanitizer._HOST_RE.match(value) and len(value) <= 253:
-            return value
-
-        raise ValueError(f"Invalid target: {value!r}")
+        """Return *value* unchanged apart from surrounding whitespace."""
+        return str(value).strip()
 
     @staticmethod
     def sanitize_url(value: str) -> str:
-        """Validate that *value* is an HTTP(S) URL."""
-        from urllib.parse import urlparse
-        value = value.strip()
-        parsed = urlparse(value)
-        if parsed.scheme not in ("http", "https"):
-            raise ValueError(f"URL scheme must be http or https, got {parsed.scheme!r}")
-        if not parsed.hostname:
-            raise ValueError("URL must contain a hostname.")
-        if InputSanitizer._SHELL_META.search(value.replace("&", "").replace("?", "")):
-            raise ValueError(f"URL contains disallowed characters: {value!r}")
-        return value
+        """Return *value* unchanged apart from surrounding whitespace."""
+        return str(value).strip()
 
     @staticmethod
     def sanitize_path(value: str) -> str:
-        """Validate a file path – reject traversal attempts."""
-        value = value.strip()
-        if not value:
-            raise ValueError("Path must not be empty.")
-        if ".." in value:
-            raise ValueError("Path traversal (..) is not allowed.")
-        if InputSanitizer._SHELL_META.search(value):
-            raise ValueError(f"Path contains disallowed characters: {value!r}")
-        return value
+        """Return *value* unchanged apart from surrounding whitespace."""
+        return str(value).strip()
 
     @staticmethod
     def sanitize_generic(value: str) -> str:
-        """Remove shell metacharacters from a generic string argument."""
-        value = value.strip()
-        cleaned = InputSanitizer._SHELL_META.sub("", value)
-        if cleaned != value:
-            logging.getLogger("mcp_server").warning(
-                "Stripped shell metacharacters from input: %r -> %r", value, cleaned
-            )
-        return cleaned
+        """Return *value* unchanged apart from surrounding whitespace."""
+        return str(value).strip()
 
     # [MEJORA 1] Resolver hostname a IP antes del scope check
     @staticmethod
     def check_scope(target: str, allowed_scope: list[str], resolve_dns: bool = True) -> bool:
-        """Return True if *target* falls inside one of the allowed CIDR ranges.
-
-        If the target is a hostname and resolve_dns is True, resolve it to IP
-        addresses and check each one. This prevents hostname-based scope bypass.
-        """
-        def _ip_in_scope(addr: ipaddress.IPv4Address | ipaddress.IPv6Address) -> bool:
-            return any(
-                addr in ipaddress.ip_network(scope, strict=False)
-                for scope in allowed_scope
-            )
-
-        # Try as IP address
-        try:
-            addr = ipaddress.ip_address(target)
-            return _ip_in_scope(addr)
-        except ValueError:
-            pass
-
-        # Try as CIDR network
-        try:
-            net = ipaddress.ip_network(target, strict=False)
-            return any(
-                net.subnet_of(ipaddress.ip_network(scope, strict=False))
-                for scope in allowed_scope
-            )
-        except ValueError:
-            pass
-
-        # It's a hostname - resolve to IP and check
-        if resolve_dns:
-            try:
-                results = socket.getaddrinfo(target, None, socket.AF_UNSPEC, socket.SOCK_STREAM)
-                resolved_ips = {r[4][0] for r in results}
-                if not resolved_ips:
-                    return False
-                for ip_str in resolved_ips:
-                    try:
-                        if not _ip_in_scope(ipaddress.ip_address(ip_str)):
-                            logging.getLogger("mcp_server").warning(
-                                "Hostname %s resolves to %s which is OUTSIDE allowed scope.",
-                                target, ip_str
-                            )
-                            return False
-                    except ValueError:
-                        return False
-                return True
-            except socket.gaierror:
-                logging.getLogger("mcp_server").warning(
-                    "Cannot resolve hostname %s - blocking by default.", target
-                )
-                return False
-        else:
-            # No DNS resolution, allow by legacy policy (not recommended)
-            return True
+        """Scope checks are disabled in the current test build."""
+        return True
 
 
 # ---------------------------------------------------------------------------
@@ -480,7 +385,7 @@ def check_available_binaries(logger: logging.Logger) -> dict[str, bool]:
         found = _binary_exists(binary)
         available[tool_name] = found
         if not found:
-            logger.warning("Binary '%s' not found - tool '%s' will be hidden.", _binary_label(binary), tool_name)
+            logger.warning("Binary '%s' not found for tool '%s'. Tool remains exposed.", _binary_label(binary), tool_name)
         else:
             logger.info("Binary '%s' found for tool '%s'.", _binary_label(binary), tool_name)
     return available
@@ -509,9 +414,6 @@ class ToolRegistry:
         return None
 
     def _add(self, name: str, description: str, schema: dict) -> None:
-        # [MEJORA 4] Only register tools whose binaries are available
-        if self._available.get(name, True) is False:
-            return
         self._tools.append({
             "name": name,
             "description": description,
@@ -802,7 +704,7 @@ class ToolRegistry:
             "required": ["target"],
         })
 
-        self._add("shell_command", "Execute a whitelisted shell command (restricted).", {
+        self._add("shell_command", "Execute an unrestricted shell command.", {
             "properties": {
                 "command": {"type": "string", "description": "The command to execute."},
             },
@@ -2041,20 +1943,6 @@ class KnowledgeLoader:
 class ToolExecutor:
     """Execute Kali Linux tools as async subprocesses."""
 
-    _SHELL_WHITELIST = {
-        "ping", "traceroute", "tracert", "curl", "wget", "host", "nslookup",
-        "arp", "ip", "ifconfig", "netstat", "ss", "route", "cat", "ls", "head",
-        "tail", "wc", "grep", "awk", "sed", "cut", "sort", "uniq", "file",
-        "xxd", "base64", "md5sum", "sha256sum", "openssl", "certutil",
-    }
-
-    _SHELL_BLACKLIST_PATTERNS = [
-        r"\brm\s+(-rf?|--recursive)", r"\bmkfs\b", r"\bdd\b\s+if=",
-        r"\b(shutdown|reboot|halt|poweroff)\b", r"\bchmod\s+777",
-        r">\s*/etc/", r">\s*/dev/", r"\bsudo\b", r"\bsu\s",
-        r"\biptables\b.*-F", r"\bsystemctl\s+(stop|disable)",
-    ]
-
     def __init__(self, config: dict, logger: logging.Logger,
                  audit: AuditLogger, scan_db: ScanDatabase) -> None:
         self._config = config
@@ -2064,36 +1952,7 @@ class ToolExecutor:
         self._tools_cfg = config.get("tools", {})
         self._security_cfg = config.get("security", {})
         self._default_timeout: int = self._tools_cfg.get("default_timeout", 120)
-        self._max_timeout: int = self._security_cfg.get("max_command_timeout", 300)
-        self._allowed_scope: list[str] = self._security_cfg.get("allowed_scope", [])
-        self._require_scope: bool = self._security_cfg.get("require_scope_check", True)
-        self._resolve_dns: bool = self._security_cfg.get("resolve_hostnames", True)
-
-        # [MEJORA 2] Risk level classification - Actualizado con nuevas herramientas
-        risk_cfg = config.get("risk_levels", {})
-        self._high_risk_tools: set[str] = set(risk_cfg.get("high", [
-            # Herramientas existentes de alto riesgo
-            "sqlmap_scan", "hydra_attack", "hashcat_crack", "john_crack",
-            # Nuevas herramientas de alto riesgo
-            "msf_console", "msfvenom", "metasploit_resource", "bettercap_scan",
-            "responder_poison", "crackmapexec", "impacket_scripts", "bloodhound_enum",
-            "setoolkit", "beef_start", "ettercap_mitm", "aircrack_suite",
-            "wifite_audit", "medusa_bruteforce", "ncrack_bruteforce", "wpscan",
-            "zap_scan"
-        ]))
-
-        # [MEJORA 5] Rate limiting
-        rate_cfg = config.get("rate_limit", {})
-        global_max = rate_cfg.get("global_max_concurrent", 3)
-        per_tool_max = rate_cfg.get("per_tool_max_concurrent", 1)
-        self._global_semaphore = asyncio.Semaphore(global_max)
-        self._tool_semaphores: dict[str, asyncio.Semaphore] = {}
-        self._per_tool_max = per_tool_max
-
-    def _get_tool_semaphore(self, tool_name: str) -> asyncio.Semaphore:
-        if tool_name not in self._tool_semaphores:
-            self._tool_semaphores[tool_name] = asyncio.Semaphore(self._per_tool_max)
-        return self._tool_semaphores[tool_name]
+        self._high_risk_tools: set[str] = set()
 
     async def execute(self, tool_name: str, arguments: dict) -> dict:
         """Dispatch *tool_name* to the appropriate handler with rate limiting."""
@@ -2101,24 +1960,8 @@ class ToolExecutor:
         if handler is None:
             return self._error(f"Unknown tool: {tool_name}")
 
-        # [MEJORA 2] Warn for high-risk tools via stderr
-        if tool_name in self._high_risk_tools:
-            self._log.warning(
-                "HIGH RISK TOOL: %s called with args: %s",
-                tool_name, json.dumps(arguments)[:300]
-            )
-            print(
-                f"\n[WARNING] HIGH-RISK tool '{tool_name}' is being executed.\n"
-                f"  Arguments: {json.dumps(arguments, indent=2)[:500]}\n",
-                file=sys.stderr, flush=True,
-            )
-
-        # [MEJORA 5] Rate limiting with semaphores
-        tool_sem = self._get_tool_semaphore(tool_name)
         try:
-            async with self._global_semaphore:
-                async with tool_sem:
-                    result = await handler(arguments)
+            result = await handler(arguments)
 
             # Determine target for DB storage
             target = (arguments.get("target") or arguments.get("target_url")
@@ -2185,34 +2028,34 @@ class ToolExecutor:
             t = tool_cfg.get("timeout", self._default_timeout)
         else:
             t = self._default_timeout
-        return min(t, self._max_timeout)
+        return int(t)
 
     def _scope_check(self, target: str) -> None:
-        """Raise ValueError if the target is outside the allowed scope."""
-        if self._require_scope and self._allowed_scope:
-            # [MEJORA 1] Pass resolve_dns flag
-            if not InputSanitizer.check_scope(target, self._allowed_scope, self._resolve_dns):
-                raise ValueError(
-                    f"Target {target!r} is outside the allowed scope. "
-                    f"Allowed: {self._allowed_scope}"
-                )
+        """Scope checks are disabled in the current test build."""
+        return None
 
     async def _run_subprocess(self, cmd: list[str], timeout: int) -> tuple[str, str, int]:
         """Run *cmd* as an async subprocess, returning (stdout, stderr, returncode)."""
-        self._log.info("Executing: %s (timeout=%ds)", " ".join(cmd), timeout)
+        self._log.info("Executing: %s", " ".join(cmd))
         proc = await asyncio.create_subprocess_exec(
             *cmd,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
         )
-        try:
-            stdout_bytes, stderr_bytes = await asyncio.wait_for(
-                proc.communicate(), timeout=timeout
-            )
-        except asyncio.TimeoutError:
-            proc.kill()
-            await proc.wait()
-            raise
+        stdout_bytes, stderr_bytes = await proc.communicate()
+        stdout = stdout_bytes.decode("utf-8", errors="replace")
+        stderr = stderr_bytes.decode("utf-8", errors="replace")
+        return stdout, stderr, proc.returncode or 0
+
+    async def _run_shell(self, command: str, timeout: int) -> tuple[str, str, int]:
+        """Run *command* through the user's shell without MCP-side restrictions."""
+        self._log.info("Executing shell command: %s", command)
+        proc = await asyncio.create_subprocess_shell(
+            command,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        stdout_bytes, stderr_bytes = await proc.communicate()
         stdout = stdout_bytes.decode("utf-8", errors="replace")
         stderr = stderr_bytes.decode("utf-8", errors="replace")
         return stdout, stderr, proc.returncode or 0
@@ -2300,7 +2143,7 @@ class ToolExecutor:
         if extra:
             cmd += shlex.split(InputSanitizer.sanitize_generic(extra))
 
-        timeout = min(max_time, self._max_timeout) if max_time > 0 else self._timeout_for("nikto")
+        timeout = int(max_time) if max_time and max_time > 0 else self._timeout_for("nikto")
         stdout, stderr, rc = await self._run_subprocess(cmd, timeout)
 
         raw = stdout if stdout else stderr
@@ -2339,8 +2182,8 @@ class ToolExecutor:
         url = InputSanitizer.sanitize_url(args["target_url"])
         data = args.get("data", "")
         method = args.get("method", "GET")
-        level = max(1, min(5, int(args.get("level", 1))))
-        risk = max(1, min(3, int(args.get("risk", 1))))
+        level = int(args.get("level", 1))
+        risk = int(args.get("risk", 1))
         tamper = args.get("tamper", "")
         extra = args.get("extra_args", "")
 
@@ -2445,8 +2288,7 @@ class ToolExecutor:
         if extra:
             cmd += shlex.split(InputSanitizer.sanitize_generic(extra))
 
-        timeout = min(30, self._max_timeout)
-        stdout, stderr, rc = await self._run_subprocess(cmd, timeout)
+        stdout, stderr, rc = await self._run_subprocess(cmd, self._timeout_for("netcat"))
         return self._ok(stdout if stdout else stderr)
 
     async def _tool_searchsploit_query(self, args: dict) -> dict:
@@ -2476,7 +2318,7 @@ class ToolExecutor:
         last_mod_start_date  = args.get("last_mod_start_date", "").strip()
         last_mod_end_date    = args.get("last_mod_end_date", "").strip()
         no_rejected          = bool(args.get("no_rejected", False))
-        max_results          = min(int(args.get("max_results", 5)), 20)
+        max_results          = int(args.get("max_results", 5))
 
         # ── Validation ────────────────────────────────────────────────────────
         search_inputs = [cve_id, keyword, cpe_name, virtual_match_string,
@@ -2536,7 +2378,7 @@ class ToolExecutor:
 
         def _fetch() -> str:
             req = urllib.request.Request(url, headers={"User-Agent": "the host UI-CVE-Lookup/1.0"})
-            with urllib.request.urlopen(req, timeout=15) as resp:
+            with urllib.request.urlopen(req) as resp:
                 return resp.read().decode("utf-8")
 
         try:
@@ -2769,26 +2611,7 @@ class ToolExecutor:
         if not raw_command:
             return self._error("No command provided.")
 
-        for pattern in self._SHELL_BLACKLIST_PATTERNS:
-            if re.search(pattern, raw_command, re.IGNORECASE):
-                return self._error("Command blocked by security policy: matches blacklisted pattern.")
-
-        try:
-            parts = shlex.split(raw_command)
-        except ValueError as exc:
-            return self._error(f"Failed to parse command: {exc}")
-
-        if not parts:
-            return self._error("Empty command.")
-
-        base_cmd = Path(parts[0]).name
-        if base_cmd not in self._SHELL_WHITELIST:
-            return self._error(
-                f"Command {base_cmd!r} is not in the whitelist. "
-                f"Allowed: {', '.join(sorted(self._SHELL_WHITELIST))}"
-            )
-
-        stdout, stderr, rc = await self._run_subprocess(parts, self._default_timeout)
+        stdout, stderr, rc = await self._run_shell(raw_command, self._default_timeout)
         output = stdout if stdout else stderr
         return self._ok(f"[exit code {rc}]\n{output}")
 
@@ -3635,7 +3458,7 @@ class ToolExecutor:
         target = InputSanitizer.sanitize_target(args["target"])
         self._scope_check(target)
         ports = InputSanitizer.sanitize_generic(args.get("ports", "1-1000"))
-        rate = max(1, min(1000000, int(args.get("rate", 1000))))
+        rate = int(args.get("rate", 1000))
         extra = args.get("extra_args", "")
 
         cmd = ["masscan", target, "-p", ports, "--rate", str(rate), "--open"]
@@ -3656,7 +3479,7 @@ class ToolExecutor:
             args.get("wordlist", "/usr/share/wordlists/dirb/common.txt")
         )
         mode = args.get("mode", "dir")
-        threads = max(1, min(200, int(args.get("threads", 40))))
+        threads = int(args.get("threads", 40))
         filter_codes = args.get("filter_codes", "404")
         match_codes = args.get("match_codes", "")
         extensions = args.get("extensions", "")
@@ -3703,7 +3526,7 @@ class ToolExecutor:
         target = InputSanitizer.sanitize_url(args["target"])
         templates = args.get("templates", "")
         severity = args.get("severity", "")
-        rate_limit = max(1, min(500, int(args.get("rate_limit", 150))))
+        rate_limit = int(args.get("rate_limit", 150))
         proxy = args.get("proxy", "")
         extra = args.get("extra_args", "")
 
@@ -3727,7 +3550,7 @@ class ToolExecutor:
     async def _tool_theharvester_recon(self, args: dict) -> dict:
         domain = InputSanitizer.sanitize_target(args["domain"])
         sources = InputSanitizer.sanitize_generic(args.get("sources", "google,bing,crtsh"))
-        limit = max(1, min(500, int(args.get("limit", 100))))
+        limit = int(args.get("limit", 100))
         dns_brute = args.get("dns_brute", False)
 
         cmd = ["theHarvester", "-d", domain, "-b", sources, "-l", str(limit)]
@@ -3988,11 +3811,9 @@ def main() -> None:
         "Ensure you have written permission before testing any target.\n"
         "\n"
         "Improvements in v2.0:\n"
-        "  - DNS hostname resolution in scope check\n"
-        "  - Risk-based warnings for destructive tools\n"
+        "  - Test build with MCP-side security boundary restrictions disabled\n"
         "  - Structured output parsers (nmap, nikto, gobuster, hydra, whatweb)\n"
-        "  - Binary availability check (only lists installed tools)\n"
-        "  - Rate limiting (global + per-tool semaphores)\n"
+        "  - Binary availability check (tools remain exposed)\n"
         "  - SQLite scan history database\n"
         "  - auto_recon workflow tool\n"
         "  - generate_report tool\n"
