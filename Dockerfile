@@ -352,6 +352,7 @@ RUN pip3 install --no-cache-dir --break-system-packages -r requirements.txt
 # ── 9. Application code + knowledge base ───────────────────────────────────
 COPY config.yaml .
 COPY mcp_server.py .
+COPY mcp_server/ mcp_server/
 COPY knowledge/ knowledge/
 COPY scripts/check-tools.py scripts/check-tools.py
 COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh

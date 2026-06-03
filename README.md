@@ -327,7 +327,8 @@ kail-mcp/
 ├── .dockerignore           ← Build context exclusions
 ├── config.yaml             ← Server configuration
 ├── requirements.txt        ← Python dependencies
-├── mcp_server.py           ← MCP server (2900+ lines, 45 registered tools)
+├── mcp_server.py           ← Compatibility launcher for python3 mcp_server.py
+├── mcp_server/             ← Modular MCP server package (protocol, registry, executor)
 ├── knowledge/              ← Tactical knowledge base (27 files)
 │   ├── core_principles.md
 │   ├── pivot_map.md
