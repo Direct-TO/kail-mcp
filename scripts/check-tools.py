@@ -73,8 +73,19 @@ TOOL_BINARY_MAP: dict[str, str | None] = {
     "crunch_gen": "crunch",
     "cewl_gen": "cewl",
     "masscan_scan": "masscan",
+    "feroxbuster_scan": "feroxbuster",
+    "dirsearch_scan": "dirsearch",
     "ffuf_fuzz": "ffuf",
     "nuclei_scan": "nuclei",
+    "subfinder_recon": "subfinder",
+    "naabu_scan": "naabu",
+    "pd_httpx_probe": "pd-httpx",
+    "katana_crawl": "katana",
+    "netexec": "netexec",
+    "evil_winrm_shell": "evil-winrm",
+    "certipy_ad": "certipy-ad",
+    "kerbrute_enum": "kerbrute",
+    "enum4linux_ng_scan": "enum4linux-ng",
     "theharvester_recon": "theHarvester",
     "cve_lookup": None,
 }
@@ -115,8 +126,23 @@ VERSION_COMMANDS: dict[str, list[str]] = {
     "crunch": ["crunch", "--version"],
     "cewl": ["cewl", "--help"],
     "masscan": ["masscan", "--version"],
+    "feroxbuster": ["feroxbuster", "--version"],
+    "dirsearch": ["dirsearch", "--version"],
     "ffuf": ["ffuf", "-V"],
     "nuclei": ["nuclei", "-version"],
+    "subfinder": ["subfinder", "-version"],
+    "naabu": ["naabu", "-version"],
+    "pd-httpx": ["pd-httpx", "-version"],
+    "katana": ["katana", "-version"],
+    # netexec may emit first-run setup text before version output; command
+    # existence is the stable headless smoke check.
+    "netexec": ["sh", "-lc", "command -v netexec"],
+    # evil-winrm is primarily interactive and may not print help reliably in
+    # headless package builds; command existence is the meaningful smoke check.
+    "evil-winrm": ["sh", "-lc", "command -v evil-winrm"],
+    "certipy-ad": ["certipy-ad", "-h"],
+    "kerbrute": ["kerbrute", "version"],
+    "enum4linux-ng": ["enum4linux-ng", "-h"],
     "theHarvester": ["theHarvester", "--version"],
 }
 
@@ -126,6 +152,9 @@ VERSION_TIMEOUTS: dict[str, int] = {
     "zaproxy": 60,
     "setoolkit": 45,
     "beef-xss": 45,
+    "netexec": 45,
+    "evil-winrm": 45,
+    "certipy-ad": 45,
 }
 
 
@@ -515,6 +544,29 @@ def run_functional_checks(
                     90,
                 ),
                 (
+                    "feroxbuster_scan",
+                    {
+                        "target_url": base_url,
+                        "wordlist": wordlist,
+                        "threads": 1,
+                        "depth": 1,
+                        "filter_codes": "404",
+                        "extra_args": "--silent --time-limit 20s",
+                    },
+                    90,
+                ),
+                (
+                    "dirsearch_scan",
+                    {
+                        "target_url": base_url,
+                        "wordlist": wordlist,
+                        "threads": 1,
+                        "exclude_status": "404",
+                        "extra_args": "--max-time 20 --quiet-mode",
+                    },
+                    90,
+                ),
+                (
                     "ffuf_fuzz",
                     {"url": f"{base_url}/FUZZ", "wordlist": wordlist, "threads": 1, "filter_codes": "404"},
                     90,
@@ -525,6 +577,27 @@ def run_functional_checks(
                     90,
                 ),
                 ("dirb_scan", {"target_url": base_url, "wordlist": wordlist}, 90),
+                (
+                    "pd_httpx_probe",
+                    {
+                        "target": base_url,
+                        "title": True,
+                        "tech_detect": False,
+                        "status_code": True,
+                        "extra_args": "-duc",
+                    },
+                    90,
+                ),
+                (
+                    "katana_crawl",
+                    {"target_url": base_url, "depth": 1, "js_crawl": False, "extra_args": "-duc"},
+                    90,
+                ),
+                (
+                    "naabu_scan",
+                    {"target": bind_ip, "ports": str(port), "rate": 100, "extra_args": "-duc"},
+                    90,
+                ),
                 ("cewl_gen", {"target_url": base_url, "depth": 1, "min_word_length": 4}, 90),
                 ("netcat_connect", {"target": bind_ip, "port": port, "extra_args": "-w 2"}, 45),
             ]

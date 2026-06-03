@@ -52,6 +52,11 @@ sqlmap -u "<url>" --technique=BEU --batch
 # B=boolean, E=error, U=union, S=stacked, T=time
 ```
 
+## Local Payload Resources
+
+SecLists fuzzing payloads are available at `/usr/share/seclists/Fuzzing/`.
+Use them for manual parameter probing or custom request construction before escalating to sqlmap. Keep sqlmap focused on confirmed or strongly suspected injectable parameters.
+
 ## Parsing Priorities
 
 1. **Injectable parameter** → which param, what type of SQLi

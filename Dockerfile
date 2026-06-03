@@ -89,11 +89,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         masscan \
         nikto \
         gobuster \
+        feroxbuster \
+        dirsearch \
         ffuf \
         dirb \
         wfuzz \
         enum4linux \
+        enum4linux-ng \
         nuclei \
+        subfinder \
+        naabu \
         \
         # ── Exploitation / brute-force ──────────────────── \
         hydra \
@@ -106,6 +111,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         smbclient \
         smbmap \
         crackmapexec \
+        netexec \
+        evil-winrm \
+        certipy-ad \
         python3-impacket \
         \
         # ── Extra brute-force ───────────────────────────── \
@@ -143,6 +151,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         \
         # ── Wordlists ──────────────────────────────────── \
         wordlists \
+        seclists \
     && rm -rf /var/lib/apt/lists/*
 
 # ── 3. Quality-of-life / shell comfort tools ───────────────────────────────
@@ -191,6 +200,80 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         binutils \
         tmux \
     && rm -rf /var/lib/apt/lists/*
+
+# ── Fixed upstream CLI tools not packaged in Kali repos ───────────────────
+#
+# ProjectDiscovery httpx is installed as pd-httpx to avoid clobbering the
+# existing /usr/bin/httpx command from Kali/Python packages.
+#
+ARG KATANA_VERSION=1.6.1
+ARG KATANA_SHA256=503754f1bd370c3ef287df6998e317baed2dd75bdd13ea64034f09b80ca393f3
+ARG KERBRUTE_VERSION=1.0.3
+ARG KERBRUTE_SHA256=710a9d2653c8bd3689e451778dab9daec0de4c4c75f900788ccf23ef254b122a
+ARG PD_HTTPX_VERSION=1.9.0
+ARG PD_HTTPX_SHA256=54c6c91d61d3b82ba79f93633df04bb547f0c954d9d9b0fb8bcedf158f85ff2f
+ARG HTTP_PROXY
+ARG HTTPS_PROXY
+ARG ALL_PROXY
+ARG NO_PROXY
+ARG http_proxy
+ARG https_proxy
+ARG all_proxy
+ARG no_proxy
+
+RUN set -eux; \
+    export HTTP_PROXY="${HTTP_PROXY:-${http_proxy:-}}"; \
+    export HTTPS_PROXY="${HTTPS_PROXY:-${https_proxy:-}}"; \
+    export ALL_PROXY="${ALL_PROXY:-${all_proxy:-}}"; \
+    export NO_PROXY="${NO_PROXY:-${no_proxy:-}}"; \
+    export http_proxy="${http_proxy:-${HTTP_PROXY:-}}"; \
+    export https_proxy="${https_proxy:-${HTTPS_PROXY:-}}"; \
+    export all_proxy="${all_proxy:-${ALL_PROXY:-}}"; \
+    export no_proxy="${no_proxy:-${NO_PROXY:-}}"; \
+    tmpdir="$(mktemp -d)"; \
+    cd "$tmpdir"; \
+    download() { \
+        url="$1"; \
+        output="$2"; \
+        curl --fail --show-error --silent --location \
+            --retry 8 --retry-all-errors --retry-connrefused --retry-delay 5 \
+            --connect-timeout 30 \
+            --output "$output" "$url"; \
+    }; \
+    download "https://github.com/projectdiscovery/katana/releases/download/v${KATANA_VERSION}/katana_${KATANA_VERSION}_linux_amd64.zip" "katana_${KATANA_VERSION}_linux_amd64.zip"; \
+    echo "${KATANA_SHA256}  katana_${KATANA_VERSION}_linux_amd64.zip" | sha256sum -c -; \
+    mkdir katana-dist; \
+    unzip -oq "katana_${KATANA_VERSION}_linux_amd64.zip" -d katana-dist; \
+    install -m 0755 katana-dist/katana /usr/local/bin/katana; \
+    download "https://github.com/ropnop/kerbrute/releases/download/v${KERBRUTE_VERSION}/kerbrute_linux_amd64" kerbrute; \
+    echo "${KERBRUTE_SHA256}  kerbrute" | sha256sum -c -; \
+    install -m 0755 kerbrute /usr/local/bin/kerbrute; \
+    download "https://github.com/projectdiscovery/httpx/releases/download/v${PD_HTTPX_VERSION}/httpx_${PD_HTTPX_VERSION}_linux_amd64.zip" "httpx_${PD_HTTPX_VERSION}_linux_amd64.zip"; \
+    echo "${PD_HTTPX_SHA256}  httpx_${PD_HTTPX_VERSION}_linux_amd64.zip" | sha256sum -c -; \
+    mkdir httpx-dist; \
+    unzip -oq "httpx_${PD_HTTPX_VERSION}_linux_amd64.zip" -d httpx-dist; \
+    install -m 0755 httpx-dist/httpx /usr/local/bin/pd-httpx; \
+    katana -version; \
+    kerbrute version; \
+    pd-httpx -version; \
+    rm -rf "$tmpdir"
+
+# ── Nuclei community templates (resource, not an MCP tool) ────────────────
+ARG NUCLEI_TEMPLATES_COMMIT=a07c83b51f52bcfe6708a56170ab9920a17d8db2
+RUN set -eux; \
+    export HTTP_PROXY="${HTTP_PROXY:-${http_proxy:-}}"; \
+    export HTTPS_PROXY="${HTTPS_PROXY:-${https_proxy:-}}"; \
+    export ALL_PROXY="${ALL_PROXY:-${all_proxy:-}}"; \
+    export NO_PROXY="${NO_PROXY:-${no_proxy:-}}"; \
+    export http_proxy="${http_proxy:-${HTTP_PROXY:-}}"; \
+    export https_proxy="${https_proxy:-${HTTPS_PROXY:-}}"; \
+    export all_proxy="${all_proxy:-${ALL_PROXY:-}}"; \
+    export no_proxy="${no_proxy:-${NO_PROXY:-}}"; \
+    git clone --depth 1 https://github.com/projectdiscovery/nuclei-templates.git /usr/share/nuclei-templates; \
+    cd /usr/share/nuclei-templates; \
+    git fetch --depth 1 origin "${NUCLEI_TEMPLATES_COMMIT}"; \
+    git checkout "${NUCLEI_TEMPLATES_COMMIT}"; \
+    rm -rf .git
 
 # ── Shell history + readline (arrow-up navigation in terminal) ──────────────
 RUN echo 'export HISTFILE=/root/.bash_history' >> /root/.bashrc \
@@ -270,6 +353,7 @@ RUN pip3 install --no-cache-dir --break-system-packages -r requirements.txt
 COPY config.yaml .
 COPY mcp_server.py .
 COPY knowledge/ knowledge/
+COPY scripts/check-tools.py scripts/check-tools.py
 COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 

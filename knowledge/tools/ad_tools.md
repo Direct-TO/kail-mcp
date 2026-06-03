@@ -1,6 +1,6 @@
 # Active Directory & Windows Lateral Movement
 
-> Covers: bloodhound, crackmapexec, evil-winrm, impacket (psexec, wmiexec, smbexec, secretsdump), mimikatz, pth_tools
+> Covers: bloodhound, crackmapexec, netexec, evil-winrm, certipy-ad, kerbrute, enum4linux-ng, impacket (psexec, wmiexec, smbexec, secretsdump), mimikatz, pth_tools
 
 ## Risk Level: HIGH — Domain-wide impact possible
 
@@ -47,6 +47,53 @@ crackmapexec winrm <target> -u <user> -p <pass>
 
 # MSSQL
 crackmapexec mssql <target> -u <user> -p <pass>
+```
+
+---
+
+## netexec — Maintained CME Successor
+
+### Why
+Use NetExec when you want the more actively maintained CME-style workflow for SMB, WinRM, LDAP, MSSQL, SSH, RDP, and VNC.
+
+### Common Invocations
+```bash
+netexec smb <target/cidr> -u <user> -p <password>
+netexec smb <target/cidr> -u <user> -H <ntlm_hash>
+netexec smb <target/cidr> -u <user> -p <pass> --shares
+netexec winrm <target> -u <user> -p <pass>
+netexec ldap <dc> -u <user> -p <pass> --users
+```
+
+---
+
+## kerbrute — Kerberos User Enumeration
+
+### When to Use
+| Signal | Action |
+|---|---|
+| AD domain known | Validate usernames before password attacks |
+| Need low-noise user discovery | `userenum` against DC |
+| Username list needed | SecLists usernames are in `/usr/share/seclists/Usernames/` |
+
+```bash
+kerbrute userenum --domain <domain> --dc <dc_ip> /usr/share/seclists/Usernames/top-usernames-shortlist.txt
+```
+
+---
+
+## certipy-ad — AD CS Enumeration
+
+### When to Use
+| Signal | Action |
+|---|---|
+| Domain creds obtained | Check AD CS misconfigurations |
+| CA or certificate templates exposed | Run `find` first |
+| ESC findings discovered | Validate manually before abuse |
+
+```bash
+certipy-ad find -u <domain>/<user> -p <pass> -dc-ip <dc_ip> -target <domain>
+certipy-ad req -u <domain>/<user> -p <pass> -ca <ca> -template <template> -target <ca_host>
 ```
 
 ---
@@ -128,6 +175,20 @@ evil-winrm -i <target> -u <user> -H <ntlm_hash>
 # Upload/download files
 *Evil-WinRM* > upload localfile.exe
 *Evil-WinRM* > download C:\file.txt
+```
+
+### MCP Caveat
+The MCP wrapper is non-interactive only. Provide a single command and let the process exit; do not expect an interactive prompt.
+
+---
+
+## enum4linux-ng — Modern SMB Enumeration
+
+Use instead of classic enum4linux when JSON/YAML output is useful.
+
+```bash
+enum4linux-ng -A -oJ /tmp/enum.json <target>
+enum4linux-ng -U -S -P <target>
 ```
 
 ---

@@ -353,8 +353,19 @@ TOOL_BINARY_MAP: dict[str, Any] = {
     "crunch_gen": "crunch",
     "cewl_gen": "cewl",
     "masscan_scan": "masscan",
+    "feroxbuster_scan": "feroxbuster",
+    "dirsearch_scan": "dirsearch",
     "ffuf_fuzz": "ffuf",
     "nuclei_scan": "nuclei",
+    "subfinder_recon": "subfinder",
+    "naabu_scan": "naabu",
+    "pd_httpx_probe": "pd-httpx",
+    "katana_crawl": "katana",
+    "netexec": "netexec",
+    "evil_winrm_shell": "evil-winrm",
+    "certipy_ad": "certipy-ad",
+    "kerbrute_enum": "kerbrute",
+    "enum4linux_ng_scan": "enum4linux-ng",
     "theharvester_recon": "theHarvester",
     "cve_lookup": None,
 }
@@ -467,8 +478,12 @@ class ToolRegistry:
                 "target_url": {"type": "string", "description": "Target URL."},
                 "wordlist": {
                     "type": "string",
-                    "description": "Path to wordlist file.",
-                    "default": "/usr/share/wordlists/dirb/common.txt",
+                    "description": (
+                        "Path to wordlist file. Useful local choices include "
+                        "/usr/share/wordlists/dirb/common.txt and SecLists under "
+                        "/usr/share/seclists/Discovery/Web-Content/."
+                    ),
+                    "default": "/usr/share/seclists/Discovery/Web-Content/common.txt",
                 },
                 "extensions": {"type": "string", "description": "File extensions to search (e.g. 'php,html,txt')."},
                 "threads": {"type": "integer", "description": "Number of concurrent threads.", "default": 10},
@@ -485,7 +500,14 @@ class ToolRegistry:
                 "method": {"type": "string", "enum": ["GET", "POST"], "description": "HTTP method.", "default": "GET"},
                 "level": {"type": "integer", "description": "Test level (1-5).", "default": 1, "minimum": 1, "maximum": 5},
                 "risk": {"type": "integer", "description": "Risk level (1-3).", "default": 1, "minimum": 1, "maximum": 3},
-                "tamper": {"type": "string", "description": "Tamper script(s)."},
+                "tamper": {
+                    "type": "string",
+                    "description": (
+                        "Tamper script(s). Use sqlmap built-in tamper scripts; "
+                        "SecLists payloads are available under /usr/share/seclists/Fuzzing/ "
+                        "for manual payload selection before escalating to sqlmap."
+                    ),
+                },
                 "extra_args": {"type": "string", "description": "Additional sqlmap arguments."},
             },
             "required": ["target_url"],
@@ -527,7 +549,15 @@ class ToolRegistry:
         self._add("wfuzz_scan", "Web application fuzzer.", {
             "properties": {
                 "target_url": {"type": "string", "description": "URL containing FUZZ keyword."},
-                "wordlist": {"type": "string", "description": "Path to wordlist."},
+                "wordlist": {
+                    "type": "string",
+                    "description": (
+                        "Path to wordlist. Useful local choices include "
+                        "/usr/share/wordlists/dirb/common.txt and SecLists under "
+                        "/usr/share/seclists/Discovery/Web-Content/ or /usr/share/seclists/Fuzzing/."
+                    ),
+                    "default": "/usr/share/seclists/Discovery/Web-Content/common.txt",
+                },
                 "hide_codes": {"type": "string", "description": "Response codes to hide (e.g. '404,302')."},
                 "hide_chars": {"type": "string", "description": "Hide responses with this character count."},
                 "extra_args": {"type": "string", "description": "Additional wfuzz arguments."},
@@ -662,7 +692,7 @@ class ToolRegistry:
                 "wordlist": {
                     "type": "string",
                     "description": "Wordlist path.",
-                    "default": "/usr/share/wordlists/dirb/common.txt",
+                    "default": "/usr/share/seclists/Discovery/Web-Content/common.txt",
                 },
                 "extra_args": {"type": "string", "description": "Additional DIRB arguments."},
             },
@@ -1190,6 +1220,44 @@ class ToolRegistry:
             "required": ["target"],
         })
 
+        self._add("feroxbuster_scan", "Fast recursive web content discovery with feroxbuster.", {
+            "properties": {
+                "target_url": {"type": "string", "description": "Target URL."},
+                "wordlist": {
+                    "type": "string",
+                    "description": "Wordlist path. SecLists web content lists are in /usr/share/seclists/Discovery/Web-Content/.",
+                    "default": "/usr/share/seclists/Discovery/Web-Content/common.txt",
+                },
+                "extensions": {"type": "string", "description": "Comma-separated extensions to append (e.g. 'php,html,txt')."},
+                "threads": {"type": "integer", "description": "Number of concurrent threads.", "default": 50},
+                "depth": {"type": "integer", "description": "Maximum recursion depth.", "default": 2},
+                "status_codes": {"type": "string", "description": "HTTP status codes to include (e.g. '200,204,301,302,403')."},
+                "filter_codes": {"type": "string", "description": "HTTP status codes to filter out (e.g. '404,400')."},
+                "proxy": {"type": "string", "description": "HTTP proxy URL."},
+                "extra_args": {"type": "string", "description": "Additional feroxbuster arguments."},
+            },
+            "required": ["target_url"],
+        })
+
+        self._add("dirsearch_scan", "Web path discovery with dirsearch.", {
+            "properties": {
+                "target_url": {"type": "string", "description": "Target URL."},
+                "wordlist": {
+                    "type": "string",
+                    "description": "Wordlist path. SecLists web content lists are in /usr/share/seclists/Discovery/Web-Content/.",
+                    "default": "/usr/share/seclists/Discovery/Web-Content/common.txt",
+                },
+                "extensions": {"type": "string", "description": "Comma-separated extensions (e.g. 'php,html,txt')."},
+                "threads": {"type": "integer", "description": "Number of threads.", "default": 30},
+                "recursive": {"type": "boolean", "description": "Enable recursive discovery.", "default": False},
+                "status_codes": {"type": "string", "description": "HTTP status codes to include."},
+                "exclude_status": {"type": "string", "description": "HTTP status codes to exclude.", "default": "404"},
+                "proxy": {"type": "string", "description": "Proxy URL."},
+                "extra_args": {"type": "string", "description": "Additional dirsearch arguments."},
+            },
+            "required": ["target_url"],
+        })
+
         self._add("ffuf_fuzz", "Fast web fuzzer for directory, file, parameter, and vhost discovery.", {
             "properties": {
                 "url": {
@@ -1198,8 +1266,12 @@ class ToolRegistry:
                 },
                 "wordlist": {
                     "type": "string",
-                    "description": "Path to wordlist.",
-                    "default": "/usr/share/wordlists/dirb/common.txt",
+                    "description": (
+                        "Path to wordlist. SecLists is available under "
+                        "/usr/share/seclists/Discovery/Web-Content/, /usr/share/seclists/Usernames/, "
+                        "/usr/share/seclists/Passwords/, and /usr/share/seclists/Fuzzing/."
+                    ),
+                    "default": "/usr/share/seclists/Discovery/Web-Content/common.txt",
                 },
                 "mode": {
                     "type": "string",
@@ -1226,7 +1298,11 @@ class ToolRegistry:
                 "target": {"type": "string", "description": "Target URL or IP to scan."},
                 "templates": {
                     "type": "string",
-                    "description": "Template tags or paths to use (e.g. 'cve', 'misconfig', 'exposures', '/path/to/template.yaml').",
+                    "description": (
+                        "Template tags or paths to use. The pinned community template resource is "
+                        "installed at /usr/share/nuclei-templates (e.g. /usr/share/nuclei-templates/http/cves/)."
+                    ),
+                    "default": "/usr/share/nuclei-templates",
                 },
                 "severity": {
                     "type": "string",
@@ -1240,6 +1316,151 @@ class ToolRegistry:
                 },
                 "proxy": {"type": "string", "description": "HTTP proxy URL."},
                 "extra_args": {"type": "string", "description": "Additional nuclei arguments."},
+            },
+            "required": ["target"],
+        })
+
+        self._add("subfinder_recon", "Passive subdomain discovery with ProjectDiscovery subfinder.", {
+            "properties": {
+                "domain": {"type": "string", "description": "Domain to enumerate."},
+                "sources": {"type": "string", "description": "Comma-separated sources to use."},
+                "all_sources": {"type": "boolean", "description": "Use all available sources.", "default": False},
+                "recursive": {"type": "boolean", "description": "Use recursive sources only.", "default": False},
+                "silent": {"type": "boolean", "description": "Print only discovered subdomains.", "default": True},
+                "extra_args": {"type": "string", "description": "Additional subfinder arguments."},
+            },
+            "required": ["domain"],
+        })
+
+        self._add("naabu_scan", "Fast host port discovery with ProjectDiscovery naabu.", {
+            "properties": {
+                "target": {"type": "string", "description": "Host, domain, IP, CIDR, or input file target."},
+                "ports": {"type": "string", "description": "Ports to scan (e.g. '80,443,8080')."},
+                "top_ports": {"type": "string", "description": "Top ports preset/count supported by naabu (e.g. '1000')."},
+                "rate": {"type": "integer", "description": "Packet rate.", "default": 1000},
+                "exclude_ports": {"type": "string", "description": "Ports to exclude."},
+                "extra_args": {"type": "string", "description": "Additional naabu arguments."},
+            },
+            "required": ["target"],
+        })
+
+        self._add("pd_httpx_probe", "ProjectDiscovery httpx web service probe, installed as pd-httpx to avoid command conflicts.", {
+            "properties": {
+                "target": {"type": "string", "description": "Single URL, host, or IP to probe."},
+                "input_file": {"type": "string", "description": "File containing hosts/URLs to probe."},
+                "ports": {"type": "string", "description": "Ports to probe (e.g. '80,443,8080,8443')."},
+                "title": {"type": "boolean", "description": "Extract page title.", "default": True},
+                "tech_detect": {"type": "boolean", "description": "Detect technologies.", "default": True},
+                "status_code": {"type": "boolean", "description": "Include HTTP status code.", "default": True},
+                "follow_redirects": {"type": "boolean", "description": "Follow redirects.", "default": False},
+                "json_output": {"type": "boolean", "description": "Emit JSON lines.", "default": False},
+                "extra_args": {"type": "string", "description": "Additional pd-httpx arguments."},
+            },
+            "required": [],
+        })
+
+        self._add("katana_crawl", "Headless-friendly web crawler with ProjectDiscovery katana.", {
+            "properties": {
+                "target_url": {"type": "string", "description": "Target URL to crawl."},
+                "depth": {"type": "integer", "description": "Crawl depth.", "default": 2},
+                "js_crawl": {"type": "boolean", "description": "Parse JavaScript files for endpoints.", "default": True},
+                "headless": {"type": "boolean", "description": "Use browser-based crawling.", "default": False},
+                "known_files": {"type": "string", "description": "Known files mode value accepted by katana (e.g. 'all')."},
+                "proxy": {"type": "string", "description": "Proxy URL."},
+                "extra_args": {"type": "string", "description": "Additional katana arguments."},
+            },
+            "required": ["target_url"],
+        })
+
+        self._add("netexec", "NetExec for Windows/AD enumeration and credential validation. [HIGH RISK]", {
+            "properties": {
+                "target": {"type": "string", "description": "IP, CIDR, hostname, or file with targets."},
+                "protocol": {
+                    "type": "string",
+                    "enum": ["smb", "ssh", "winrm", "mssql", "ldap", "ftp", "rdp", "vnc"],
+                    "description": "Protocol to use.",
+                    "default": "smb",
+                },
+                "username": {"type": "string", "description": "Username or username file."},
+                "password": {"type": "string", "description": "Password or password file."},
+                "hash": {"type": "string", "description": "NTLM hash for pass-the-hash."},
+                "module": {"type": "string", "description": "NetExec module to run."},
+                "command": {"type": "string", "description": "Command to execute."},
+                "port": {"type": "integer", "description": "Override target port."},
+                "extra_args": {"type": "string", "description": "Additional netexec arguments."},
+            },
+            "required": ["target"],
+        })
+
+        self._add("evil_winrm_shell", "Run a non-interactive Evil-WinRM PowerShell command. [HIGH RISK]", {
+            "properties": {
+                "target": {"type": "string", "description": "Target host/IP."},
+                "username": {"type": "string", "description": "Username."},
+                "password": {"type": "string", "description": "Password."},
+                "hash": {"type": "string", "description": "NTLM hash."},
+                "domain": {"type": "string", "description": "Domain."},
+                "command": {"type": "string", "description": "PowerShell command to run non-interactively."},
+                "scripts_path": {"type": "string", "description": "Local scripts path to expose to Evil-WinRM."},
+                "extra_args": {"type": "string", "description": "Additional evil-winrm arguments."},
+            },
+            "required": ["target", "username", "command"],
+        })
+
+        self._add("certipy_ad", "Certipy AD CS enumeration and abuse helper. [HIGH RISK]", {
+            "properties": {
+                "action": {
+                    "type": "string",
+                    "enum": ["find", "req", "auth", "account", "ca", "cert", "parse", "forge", "relay", "shadow", "template"],
+                    "description": "Certipy action.",
+                    "default": "find",
+                },
+                "target": {"type": "string", "description": "Target host, domain, or identity target depending on action."},
+                "username": {"type": "string", "description": "Username."},
+                "password": {"type": "string", "description": "Password."},
+                "hash": {"type": "string", "description": "NTLM hash."},
+                "domain": {"type": "string", "description": "Domain."},
+                "dc_ip": {"type": "string", "description": "Domain controller IP."},
+                "ca": {"type": "string", "description": "Certificate authority name."},
+                "template": {"type": "string", "description": "Certificate template name."},
+                "extra_args": {"type": "string", "description": "Additional certipy-ad arguments."},
+            },
+            "required": ["action"],
+        })
+
+        self._add("kerbrute_enum", "Kerberos username/password discovery with kerbrute. [HIGH RISK]", {
+            "properties": {
+                "domain": {"type": "string", "description": "AD/Kerberos domain."},
+                "dc": {"type": "string", "description": "Domain controller host/IP."},
+                "user_list": {
+                    "type": "string",
+                    "description": "User list path. SecLists usernames are in /usr/share/seclists/Usernames/.",
+                },
+                "mode": {
+                    "type": "string",
+                    "enum": ["userenum", "passwordspray", "bruteuser", "bruteforce"],
+                    "description": "Kerbrute mode.",
+                    "default": "userenum",
+                },
+                "threads": {"type": "integer", "description": "Thread count.", "default": 10},
+                "extra_args": {"type": "string", "description": "Additional kerbrute arguments."},
+            },
+            "required": ["domain", "user_list"],
+        })
+
+        self._add("enum4linux_ng_scan", "Next-generation SMB/Windows enumeration with JSON output support.", {
+            "properties": {
+                "target": {"type": "string", "description": "Target IP or hostname."},
+                "options": {
+                    "type": "string",
+                    "enum": ["all", "users", "groups", "shares", "policy", "os", "listeners"],
+                    "description": "Enumeration category.",
+                    "default": "all",
+                },
+                "username": {"type": "string", "description": "Username."},
+                "password": {"type": "string", "description": "Password."},
+                "domain": {"type": "string", "description": "Domain/workgroup."},
+                "json_output": {"type": "boolean", "description": "Emit JSON output.", "default": True},
+                "extra_args": {"type": "string", "description": "Additional enum4linux-ng arguments."},
             },
             "required": ["target"],
         })
@@ -1750,6 +1971,12 @@ class KnowledgeLoader:
         "joomscan":           "tools/web_scanners.md",
         "drupwn":             "tools/web_scanners.md",
         "droopescan":         "tools/web_scanners.md",
+        "feroxbuster_scan":   "tools/web_scanners.md",
+        "dirsearch_scan":     "tools/web_scanners.md",
+        "pd_httpx_probe":     "tools/web_scanners.md",
+        "katana_crawl":       "tools/web_scanners.md",
+        "subfinder_recon":    "tools/web_scanners.md",
+        "naabu_scan":         "tools/web_scanners.md",
         # Exploitation
         "sqlmap_scan":        "tools/sqlmap.md",
         "searchsploit_query": "tools/searchsploit.md",
@@ -1776,7 +2003,12 @@ class KnowledgeLoader:
         "rpcclient":          "tools/smb_advanced.md",
         "bloodhound":         "tools/ad_tools.md",
         "crackmapexec":       "tools/ad_tools.md",
+        "netexec":            "tools/ad_tools.md",
         "evil_winrm":         "tools/ad_tools.md",
+        "evil_winrm_shell":   "tools/ad_tools.md",
+        "certipy_ad":         "tools/ad_tools.md",
+        "kerbrute_enum":      "tools/ad_tools.md",
+        "enum4linux_ng_scan": "tools/ad_tools.md",
         "impacket":           "tools/ad_tools.md",
         "psexec":             "tools/ad_tools.md",
         "wmiexec":            "tools/ad_tools.md",
@@ -1808,9 +2040,12 @@ class KnowledgeLoader:
     _WEB_TOOLS = frozenset([
         "whatweb_scan", "gobuster_dir", "nikto_scan", "wfuzz_scan", "dirb_scan",
         "owasp_zap", "burpsuite", "wpscan", "joomscan", "drupwn", "droopescan",
+        "ffuf_fuzz", "nuclei_scan", "feroxbuster_scan", "dirsearch_scan",
+        "pd_httpx_probe", "katana_crawl", "subfinder_recon", "naabu_scan",
     ])
     _SMB_TOOLS = frozenset([
-        "enum4linux_scan", "smbclient", "smbmap", "rpcclient",
+        "enum4linux_scan", "enum4linux_ng_scan", "smbclient", "smbmap", "rpcclient",
+        "crackmapexec", "netexec", "evil_winrm_shell", "certipy_ad", "kerbrute_enum",
     ])
     _BRUTE_TOOLS = frozenset([
         "hydra_attack", "medusa", "ncrack", "patator", "xhydra",
@@ -2042,7 +2277,34 @@ class ToolExecutor:
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
         )
-        stdout_bytes, stderr_bytes = await proc.communicate()
+        try:
+            stdout_bytes, stderr_bytes = await asyncio.wait_for(proc.communicate(), timeout=timeout)
+        except asyncio.TimeoutError:
+            proc.kill()
+            await proc.wait()
+            raise
+        stdout = stdout_bytes.decode("utf-8", errors="replace")
+        stderr = stderr_bytes.decode("utf-8", errors="replace")
+        return stdout, stderr, proc.returncode or 0
+
+    async def _run_subprocess_with_input(self, cmd: list[str], stdin_text: str, timeout: int) -> tuple[str, str, int]:
+        """Run *cmd* with stdin text, returning (stdout, stderr, returncode)."""
+        self._log.info("Executing: %s", " ".join(cmd))
+        proc = await asyncio.create_subprocess_exec(
+            *cmd,
+            stdin=asyncio.subprocess.PIPE,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        try:
+            stdout_bytes, stderr_bytes = await asyncio.wait_for(
+                proc.communicate(stdin_text.encode("utf-8")),
+                timeout=timeout,
+            )
+        except asyncio.TimeoutError:
+            proc.kill()
+            await proc.wait()
+            raise
         stdout = stdout_bytes.decode("utf-8", errors="replace")
         stderr = stderr_bytes.decode("utf-8", errors="replace")
         return stdout, stderr, proc.returncode or 0
@@ -2055,7 +2317,12 @@ class ToolExecutor:
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
         )
-        stdout_bytes, stderr_bytes = await proc.communicate()
+        try:
+            stdout_bytes, stderr_bytes = await asyncio.wait_for(proc.communicate(), timeout=timeout)
+        except asyncio.TimeoutError:
+            proc.kill()
+            await proc.wait()
+            raise
         stdout = stdout_bytes.decode("utf-8", errors="replace")
         stderr = stderr_bytes.decode("utf-8", errors="replace")
         return stdout, stderr, proc.returncode or 0
@@ -3471,12 +3738,78 @@ class ToolExecutor:
         stdout, stderr, rc = await self._run_subprocess(cmd, self._timeout_for("masscan"))
         return self._ok(stdout if stdout else stderr)
 
+    async def _tool_feroxbuster_scan(self, args: dict) -> dict:
+        url = InputSanitizer.sanitize_url(args["target_url"])
+        wordlist = InputSanitizer.sanitize_path(
+            args.get("wordlist", "/usr/share/seclists/Discovery/Web-Content/common.txt")
+        )
+        threads = int(args.get("threads", 50))
+        depth = int(args.get("depth", 2))
+        extensions = args.get("extensions", "")
+        status_codes = args.get("status_codes", "")
+        filter_codes = args.get("filter_codes", "")
+        proxy = args.get("proxy", "")
+        extra = args.get("extra_args", "")
+
+        cmd = [
+            "feroxbuster", "--url", url, "--wordlist", wordlist,
+            "--threads", str(threads), "--depth", str(depth), "--no-state",
+        ]
+        if extensions:
+            cmd += ["--extensions", InputSanitizer.sanitize_generic(extensions)]
+        if status_codes:
+            cmd += ["--status-codes", InputSanitizer.sanitize_generic(status_codes)]
+        if filter_codes:
+            cmd += ["--filter-status", InputSanitizer.sanitize_generic(filter_codes)]
+        if proxy:
+            cmd += ["--proxy", InputSanitizer.sanitize_url(proxy)]
+        if extra:
+            try:
+                cmd += shlex.split(InputSanitizer.sanitize_generic(extra))
+            except ValueError as e:
+                return self._error(f"Invalid extra_args: {e}")
+
+        stdout, stderr, rc = await self._run_subprocess(cmd, self._timeout_for("feroxbuster"))
+        return self._ok(stdout if stdout else stderr)
+
+    async def _tool_dirsearch_scan(self, args: dict) -> dict:
+        url = InputSanitizer.sanitize_url(args["target_url"])
+        wordlist = InputSanitizer.sanitize_path(
+            args.get("wordlist", "/usr/share/seclists/Discovery/Web-Content/common.txt")
+        )
+        threads = int(args.get("threads", 30))
+        extensions = args.get("extensions", "")
+        status_codes = args.get("status_codes", "")
+        exclude_status = args.get("exclude_status", "404")
+        proxy = args.get("proxy", "")
+        extra = args.get("extra_args", "")
+
+        cmd = ["dirsearch", "-u", url, "-w", wordlist, "-t", str(threads), "--no-color"]
+        if extensions:
+            cmd += ["-e", InputSanitizer.sanitize_generic(extensions)]
+        if args.get("recursive", False):
+            cmd.append("-r")
+        if status_codes:
+            cmd += ["--include-status", InputSanitizer.sanitize_generic(status_codes)]
+        if exclude_status:
+            cmd += ["--exclude-status", InputSanitizer.sanitize_generic(exclude_status)]
+        if proxy:
+            cmd += ["--proxy", InputSanitizer.sanitize_url(proxy)]
+        if extra:
+            try:
+                cmd += shlex.split(InputSanitizer.sanitize_generic(extra))
+            except ValueError as e:
+                return self._error(f"Invalid extra_args: {e}")
+
+        stdout, stderr, rc = await self._run_subprocess(cmd, self._timeout_for("dirsearch"))
+        return self._ok(stdout if stdout else stderr)
+
     async def _tool_ffuf_fuzz(self, args: dict) -> dict:
         url = InputSanitizer.sanitize_url(args["url"])
         if "FUZZ" not in url:
             url = url.rstrip("/") + "/FUZZ"
         wordlist = InputSanitizer.sanitize_path(
-            args.get("wordlist", "/usr/share/wordlists/dirb/common.txt")
+            args.get("wordlist", "/usr/share/seclists/Discovery/Web-Content/common.txt")
         )
         mode = args.get("mode", "dir")
         threads = int(args.get("threads", 40))
@@ -3545,6 +3878,256 @@ class ToolExecutor:
                 return self._error(f"Invalid extra_args: {e}")
 
         stdout, stderr, rc = await self._run_subprocess(cmd, self._timeout_for("nuclei"))
+        return self._ok(stdout if stdout else stderr)
+
+    async def _tool_subfinder_recon(self, args: dict) -> dict:
+        domain = InputSanitizer.sanitize_target(args["domain"])
+        sources = args.get("sources", "")
+        extra = args.get("extra_args", "")
+
+        cmd = ["subfinder", "-d", domain]
+        if args.get("silent", True):
+            cmd.append("-silent")
+        if sources:
+            cmd += ["-s", InputSanitizer.sanitize_generic(sources)]
+        if args.get("all_sources", False):
+            cmd.append("-all")
+        if args.get("recursive", False):
+            cmd.append("-recursive")
+        if extra:
+            try:
+                cmd += shlex.split(InputSanitizer.sanitize_generic(extra))
+            except ValueError as e:
+                return self._error(f"Invalid extra_args: {e}")
+
+        stdout, stderr, rc = await self._run_subprocess(cmd, self._timeout_for("subfinder"))
+        return self._ok(stdout if stdout else stderr)
+
+    async def _tool_naabu_scan(self, args: dict) -> dict:
+        target = InputSanitizer.sanitize_target(args["target"])
+        self._scope_check(target)
+        ports = args.get("ports", "")
+        top_ports = args.get("top_ports", "")
+        rate = int(args.get("rate", 1000))
+        exclude_ports = args.get("exclude_ports", "")
+        extra = args.get("extra_args", "")
+
+        cmd = ["naabu", "-host", target, "-rate", str(rate), "-silent"]
+        if ports:
+            cmd += ["-p", InputSanitizer.sanitize_generic(ports)]
+        if top_ports:
+            cmd += ["-top-ports", InputSanitizer.sanitize_generic(top_ports)]
+        if exclude_ports:
+            cmd += ["-exclude-ports", InputSanitizer.sanitize_generic(exclude_ports)]
+        if extra:
+            try:
+                cmd += shlex.split(InputSanitizer.sanitize_generic(extra))
+            except ValueError as e:
+                return self._error(f"Invalid extra_args: {e}")
+
+        stdout, stderr, rc = await self._run_subprocess(cmd, self._timeout_for("naabu"))
+        return self._ok(stdout if stdout else stderr)
+
+    async def _tool_pd_httpx_probe(self, args: dict) -> dict:
+        target = args.get("target", "").strip()
+        input_file = args.get("input_file", "").strip()
+        if not target and not input_file:
+            return self._error("Provide target or input_file.")
+
+        cmd = ["pd-httpx", "-silent"]
+        if target:
+            cmd += ["-u", InputSanitizer.sanitize_target(target)]
+        if input_file:
+            cmd += ["-l", InputSanitizer.sanitize_path(input_file)]
+        if args.get("ports"):
+            cmd += ["-p", InputSanitizer.sanitize_generic(args["ports"])]
+        if args.get("title", True):
+            cmd.append("-title")
+        if args.get("tech_detect", True):
+            cmd.append("-tech-detect")
+        if args.get("status_code", True):
+            cmd.append("-sc")
+        if args.get("follow_redirects", False):
+            cmd.append("-fr")
+        if args.get("json_output", False):
+            cmd.append("-j")
+        if args.get("extra_args"):
+            try:
+                cmd += shlex.split(InputSanitizer.sanitize_generic(args["extra_args"]))
+            except ValueError as e:
+                return self._error(f"Invalid extra_args: {e}")
+
+        stdout, stderr, rc = await self._run_subprocess(cmd, self._timeout_for("pd_httpx"))
+        return self._ok(stdout if stdout else stderr)
+
+    async def _tool_katana_crawl(self, args: dict) -> dict:
+        url = InputSanitizer.sanitize_url(args["target_url"])
+        depth = int(args.get("depth", 2))
+        known_files = args.get("known_files", "")
+        proxy = args.get("proxy", "")
+        extra = args.get("extra_args", "")
+
+        cmd = ["katana", "-u", url, "-d", str(depth), "-silent"]
+        if args.get("js_crawl", True):
+            cmd.append("-jc")
+        if args.get("headless", False):
+            cmd.append("-hl")
+        if known_files:
+            cmd += ["-kf", InputSanitizer.sanitize_generic(known_files)]
+        if proxy:
+            cmd += ["-proxy", InputSanitizer.sanitize_url(proxy)]
+        if extra:
+            try:
+                cmd += shlex.split(InputSanitizer.sanitize_generic(extra))
+            except ValueError as e:
+                return self._error(f"Invalid extra_args: {e}")
+
+        stdout, stderr, rc = await self._run_subprocess(cmd, self._timeout_for("katana"))
+        return self._ok(stdout if stdout else stderr)
+
+    async def _tool_netexec(self, args: dict) -> dict:
+        target = InputSanitizer.sanitize_target(args["target"])
+        self._scope_check(target)
+        protocol = args.get("protocol", "smb")
+        extra = args.get("extra_args", "")
+
+        cmd = ["netexec", protocol, target]
+        if args.get("username"):
+            cmd += ["-u", args["username"]]
+        if args.get("password"):
+            cmd += ["-p", args["password"]]
+        if args.get("hash"):
+            cmd += ["-H", args["hash"]]
+        if args.get("module"):
+            cmd += ["-M", args["module"]]
+        if args.get("command"):
+            cmd += ["-x", args["command"]]
+        if args.get("port"):
+            cmd += ["--port", str(args["port"])]
+        if extra:
+            try:
+                cmd += shlex.split(InputSanitizer.sanitize_generic(extra))
+            except ValueError as e:
+                return self._error(f"Invalid extra_args: {e}")
+
+        stdout, stderr, rc = await self._run_subprocess(cmd, self._timeout_for("netexec"))
+        return self._ok(stdout if stdout else stderr)
+
+    async def _tool_evil_winrm_shell(self, args: dict) -> dict:
+        target = InputSanitizer.sanitize_target(args["target"])
+        self._scope_check(target)
+        username = args["username"]
+        command = args.get("command", "").strip()
+        if not command:
+            return self._error("command is required; interactive Evil-WinRM sessions are not supported by this MCP tool.")
+        if not args.get("password") and not args.get("hash"):
+            return self._error("Provide password or hash.")
+
+        cmd = ["evil-winrm", "-i", target, "-u", username]
+        if args.get("password"):
+            cmd += ["-p", args["password"]]
+        if args.get("hash"):
+            cmd += ["-H", args["hash"]]
+        if args.get("domain"):
+            cmd += ["-r", args["domain"]]
+        if args.get("scripts_path"):
+            cmd += ["-s", InputSanitizer.sanitize_path(args["scripts_path"])]
+        if args.get("extra_args"):
+            try:
+                cmd += shlex.split(InputSanitizer.sanitize_generic(args["extra_args"]))
+            except ValueError as e:
+                return self._error(f"Invalid extra_args: {e}")
+
+        stdin_text = f"{command}\nexit\n"
+        stdout, stderr, rc = await self._run_subprocess_with_input(cmd, stdin_text, self._timeout_for("evil_winrm"))
+        return self._ok(stdout if stdout else stderr)
+
+    async def _tool_certipy_ad(self, args: dict) -> dict:
+        action = args.get("action", "find")
+        cmd = ["certipy-ad", action]
+        target = args.get("target", "").strip()
+        if target:
+            cmd += ["-target", InputSanitizer.sanitize_target(target)]
+        if args.get("username"):
+            identity = args["username"]
+            if args.get("domain") and "@" not in identity and "\\" not in identity and "/" not in identity:
+                identity = f"{identity}@{args['domain']}"
+            cmd += ["-u", identity]
+        if args.get("password"):
+            cmd += ["-p", args["password"]]
+        if args.get("hash"):
+            cmd += ["-hashes", args["hash"]]
+        if args.get("dc_ip"):
+            cmd += ["-dc-ip", InputSanitizer.sanitize_target(args["dc_ip"])]
+        if args.get("ca"):
+            cmd += ["-ca", args["ca"]]
+        if args.get("template"):
+            cmd += ["-template", args["template"]]
+        if args.get("extra_args"):
+            try:
+                cmd += shlex.split(InputSanitizer.sanitize_generic(args["extra_args"]))
+            except ValueError as e:
+                return self._error(f"Invalid extra_args: {e}")
+
+        stdout, stderr, rc = await self._run_subprocess(cmd, self._timeout_for("certipy_ad"))
+        return self._ok(stdout if stdout else stderr)
+
+    async def _tool_kerbrute_enum(self, args: dict) -> dict:
+        domain = InputSanitizer.sanitize_target(args["domain"])
+        user_list = InputSanitizer.sanitize_path(args["user_list"])
+        mode = args.get("mode", "userenum")
+        threads = int(args.get("threads", 10))
+        extra = args.get("extra_args", "")
+
+        cmd = ["kerbrute", mode, "--domain", domain, "--threads", str(threads)]
+        if args.get("dc"):
+            cmd += ["--dc", InputSanitizer.sanitize_target(args["dc"])]
+        if extra:
+            try:
+                cmd += shlex.split(InputSanitizer.sanitize_generic(extra))
+            except ValueError as e:
+                return self._error(f"Invalid extra_args: {e}")
+        cmd.append(user_list)
+
+        stdout, stderr, rc = await self._run_subprocess(cmd, self._timeout_for("kerbrute"))
+        return self._ok(stdout if stdout else stderr)
+
+    async def _tool_enum4linux_ng_scan(self, args: dict) -> dict:
+        target = InputSanitizer.sanitize_target(args["target"])
+        self._scope_check(target)
+        options = args.get("options", "all")
+        extra = args.get("extra_args", "")
+
+        flag_map = {
+            "all": "-A", "users": "-U", "groups": "-G", "shares": "-S",
+            "policy": "-P", "os": "-O", "listeners": "-L",
+        }
+        cmd = ["enum4linux-ng", flag_map.get(options, "-A")]
+        if args.get("domain"):
+            cmd += ["-w", args["domain"]]
+        if args.get("username"):
+            cmd += ["-u", args["username"]]
+        if args.get("password"):
+            cmd += ["-p", args["password"]]
+        output_prefix = ""
+        if args.get("json_output", True):
+            output_prefix = f"/tmp/enum4linux_ng_{datetime.now().strftime('%Y%m%d_%H%M%S_%f')}"
+            cmd += ["-oJ", output_prefix]
+        if extra:
+            try:
+                cmd += shlex.split(InputSanitizer.sanitize_generic(extra))
+            except ValueError as e:
+                return self._error(f"Invalid extra_args: {e}")
+        cmd.append(target)
+
+        stdout, stderr, rc = await self._run_subprocess(cmd, self._timeout_for("enum4linux_ng"))
+        if output_prefix:
+            json_path = Path(f"{output_prefix}.json")
+            if json_path.is_file():
+                try:
+                    return self._ok(json_path.read_text(encoding="utf-8", errors="replace"))
+                except OSError:
+                    pass
         return self._ok(stdout if stdout else stderr)
 
     async def _tool_theharvester_recon(self, args: dict) -> dict:

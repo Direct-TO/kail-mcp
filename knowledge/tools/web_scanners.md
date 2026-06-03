@@ -1,8 +1,43 @@
 # Web Application Scanners
 
-> Covers: owasp_zap, burpsuite, wpscan, joomscan, droopescan, drupwn
+> Covers: owasp_zap, burpsuite, wpscan, joomscan, droopescan, drupwn, feroxbuster, dirsearch, subfinder, naabu, ProjectDiscovery httpx, katana
+
+## Local Resource Packs
+
+- SecLists is installed at `/usr/share/seclists`.
+- Web content lists: `/usr/share/seclists/Discovery/Web-Content/`
+- Usernames: `/usr/share/seclists/Usernames/`
+- Passwords: `/usr/share/seclists/Passwords/`
+- Fuzz payloads: `/usr/share/seclists/Fuzzing/`
+- Nuclei community templates are pinned at `/usr/share/nuclei-templates`.
+
+Use these paths directly in `gobuster_dir`, `ffuf_fuzz`, `wfuzz_scan`, `feroxbuster_scan`, `dirsearch_scan`, and `nuclei_scan`.
 
 ---
+
+## Fast Discovery Stack
+
+### feroxbuster / dirsearch — Recursive Content Discovery
+
+Use after a web service is confirmed. Prefer SecLists web content lists for breadth.
+
+```bash
+feroxbuster --url http://<target> --wordlist /usr/share/seclists/Discovery/Web-Content/common.txt
+dirsearch -u http://<target> -w /usr/share/seclists/Discovery/Web-Content/common.txt
+```
+
+### subfinder → naabu → pd-httpx → katana
+
+Use for domain-owned asset discovery:
+
+```bash
+subfinder -d <domain> -silent
+naabu -host <host> -p 80,443,8080,8443 -silent
+pd-httpx -u <url> -title -tech-detect -status-code
+katana -u <url> -d 2 -jc -silent
+```
+
+`pd-httpx` is ProjectDiscovery httpx. It is intentionally named this way in the container so it does not conflict with Kali's `/usr/bin/httpx`.
 
 ## OWASP ZAP — Web App Security Scanner
 

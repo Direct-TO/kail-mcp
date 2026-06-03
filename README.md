@@ -193,26 +193,28 @@ docker compose up
 
 ---
 
-## Installed MCP Tools (45 exposed)
+## Installed MCP Tools (56 exposed)
 
 The container includes these Kali tools (auto-detected at startup):
 
 | Category | Tools |
 |---|---|
-| **Recon** | nmap, masscan, whatweb, whois, dig, theHarvester, searchsploit |
+| **Recon** | nmap, masscan, naabu, subfinder, pd-httpx, whatweb, whois, dig, theHarvester, searchsploit |
 | **CVE Intelligence** | cve_lookup (NVD 2.0 API — exact CVE ID, keyword+exact_match, cpe_name, virtual_match_string, cvss_severity filter, publication and modification date ranges, no_rejected flag; returns CVSS, SERVICE BINDING annotation, CPEs, references) |
-| **Web Scanning** | gobuster, ffuf, nuclei, nikto, dirb, wfuzz, wpscan, joomscan, zaproxy |
+| **Web Scanning** | gobuster, feroxbuster, dirsearch, ffuf, nuclei, katana, nikto, dirb, wfuzz, wpscan, joomscan, zaproxy |
 | **Exploitation** | sqlmap, metasploit (msfconsole, msfvenom) |
-| **Credential Attacks** | hydra, medusa, ncrack, hashcat, john, crunch, cewl |
-| **SMB / AD** | enum4linux, smbclient, smbmap, crackmapexec, bloodhound-python, impacket example scripts |
+| **Credential Attacks** | hydra, medusa, ncrack, kerbrute, hashcat, john, crunch, cewl |
+| **SMB / AD** | enum4linux, enum4linux-ng, smbclient, smbmap, crackmapexec, netexec, evil-winrm (non-interactive command mode), certipy-ad, bloodhound-python, impacket example scripts |
 | **MITM** | bettercap, ettercap, responder |
 | **Wireless** | aircrack-ng, wifite |
 | **C2 / Social Engineering** | beef-xss, setoolkit |
 | **Proxy Routing** | proxychains4 (Burp profile `/etc/proxychains4.conf` + Tor profile `/etc/proxychains4-tor.conf`) |
 | **Network** | tcpdump, netcat, socat |
-| **Wordlists** | rockyou.txt, dirb lists |
+| **Wordlists / Templates** | rockyou.txt, dirb lists, SecLists (`/usr/share/seclists`), pinned nuclei templates (`/usr/share/nuclei-templates`) |
 
 Tool dependency availability is logged at startup. MCP tools remain exposed in this test build.
+
+`seclists` and `nuclei-templates` are installed resource packs, not MCP tools. Their paths are included in the relevant tool schemas and tactical knowledge so the model can use them with `gobuster_dir`, `ffuf_fuzz`, `wfuzz_scan`, `feroxbuster_scan`, `dirsearch_scan`, `nuclei_scan`, and `sqlmap_scan`.
 
 ### Tools Not Available in Docker
 
@@ -228,7 +230,7 @@ The following tools are generally not runnable in this Docker container unless y
 | `shellter` | Windows PE injector (Wine-dependent) |
 | `xhydra` | GTK GUI, useless headless |
 | `pyrit`, `ewsa` | Deprecated / unavailable in repos |
-| `zap-cli`, `evil-winrm`, `patator`, `mitmproxy`, `ngrep`, `hping3`, `fragrouter`, `macchanger`, `veil`, `kismet`, `reaver`, `bully`, `pixiewps`, `cowpatty`, `wireshark-common`, `seclists` | Not exposed by this MCP server, too heavy for the default image, GUI-dependent, or unsuitable for portable Docker use |
+| `zap-cli`, `patator`, `mitmproxy`, `ngrep`, `hping3`, `fragrouter`, `macchanger`, `veil`, `kismet`, `reaver`, `bully`, `pixiewps`, `cowpatty`, `wireshark-common` | Not exposed by this MCP server, too heavy for the default image, GUI-dependent, or unsuitable for portable Docker use |
 | `wifiphisher`, `fluxion`, `airgeddon`, `wifi-honey`, `ghost-phisher`, `fern-wifi-cracker` | Not in Kali repos or require GUI |
 
 ### Shell Environment

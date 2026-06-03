@@ -22,8 +22,8 @@ echo "╚═══════════════════════�
 echo -e "${NC}"
 
 # ── Ensure data directories exist ──────────────────────────────────────────
-mkdir -p "$(dirname "${MCP_DATABASE:-/opt/rami-kali/data/scan_results.db}")"
-mkdir -p "${MCP_REPORT_DIR:-/opt/rami-kali/reports}"
+mkdir -p "$(dirname "${MCP_DATABASE:-/opt/kail-mcp/data/scan_results.db}")"
+mkdir -p "${MCP_REPORT_DIR:-/opt/kail-mcp/reports}"
 
 # ── Tool availability check ───────────────────────────────────────────────
 echo -e "${BOLD}[*] Checking installed tools...${NC}"
@@ -73,8 +73,19 @@ MCP_TOOLS=(
     "crunch_gen|crunch"
     "cewl_gen|cewl"
     "masscan_scan|masscan"
+    "feroxbuster_scan|feroxbuster"
+    "dirsearch_scan|dirsearch"
     "ffuf_fuzz|ffuf"
     "nuclei_scan|nuclei"
+    "subfinder_recon|subfinder"
+    "naabu_scan|naabu"
+    "pd_httpx_probe|pd-httpx"
+    "katana_crawl|katana"
+    "netexec|netexec"
+    "evil_winrm_shell|evil-winrm"
+    "certipy_ad|certipy-ad"
+    "kerbrute_enum|kerbrute"
+    "enum4linux_ng_scan|enum4linux-ng"
     "theharvester_recon|theHarvester"
 )
 
@@ -104,6 +115,19 @@ if [ "$missing" -gt 0 ]; then
     echo -e "  ${YELLOW}[!] Missing tools are reported only; MCP tools remain exposed in this test build.${NC}"
 fi
 
+echo ""
+echo -e "${BOLD}[*] Checking tool resource packs...${NC}"
+if [ -d /usr/share/seclists ]; then
+    echo -e "  ${GREEN}[+] SecLists: /usr/share/seclists${NC}"
+else
+    echo -e "  ${YELLOW}[!] SecLists not found at /usr/share/seclists${NC}"
+fi
+if [ -d /usr/share/nuclei-templates ]; then
+    echo -e "  ${GREEN}[+] Nuclei templates: /usr/share/nuclei-templates${NC}"
+else
+    echo -e "  ${YELLOW}[!] Nuclei templates not found at /usr/share/nuclei-templates${NC}"
+fi
+
 # ── Platform/commercial tools (never available in Docker) ──────────────────
 echo ""
 echo -e "  ${CYAN}[i] Not available in Docker (platform/commercial):${NC}"
@@ -127,14 +151,14 @@ fi
 # ── Configuration summary ─────────────────────────────────────────────────
 echo ""
 echo -e "${BOLD}[*] Configuration:${NC}"
-echo -e "  Config:    ${MCP_CONFIG_PATH:-/opt/rami-kali/config.yaml}"
-echo -e "  Database:  ${MCP_DATABASE:-/opt/rami-kali/data/scan_results.db}"
-echo -e "  Reports:   ${MCP_REPORT_DIR:-/opt/rami-kali/reports}"
+echo -e "  Config:    ${MCP_CONFIG_PATH:-/opt/kail-mcp/config.yaml}"
+echo -e "  Database:  ${MCP_DATABASE:-/opt/kail-mcp/data/scan_results.db}"
+echo -e "  Reports:   ${MCP_REPORT_DIR:-/opt/kail-mcp/reports}"
 echo -e "  Log level: ${MCP_LOG_LEVEL:-INFO}"
 echo ""
 
 # ── Knowledge base check ──────────────────────────────────────────────────
-KB_DIR="/opt/rami-kali/knowledge"
+KB_DIR="/opt/kail-mcp/knowledge"
 if [ -d "$KB_DIR" ]; then
     kb_files=$(find "$KB_DIR" -name "*.md" | wc -l)
     echo -e "  ${GREEN}[+] Knowledge base: ${kb_files} files loaded${NC}"
